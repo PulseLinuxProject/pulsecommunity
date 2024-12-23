@@ -43,14 +43,22 @@ export async function POST(req: Request) {
       }
     })
 
+    console.log('User created successfully:', { name, email: email || null })
+
     return NextResponse.json(
-      { message: 'User created successfully' },
+      { 
+        message: 'User created successfully',
+        user: {
+          name: user.name,
+          email: user.email
+        }
+      },
       { status: 201 }
     )
   } catch (error) {
     console.error('Registration error:', error)
     return NextResponse.json(
-      { error: 'Something went wrong' },
+      { error: error instanceof Error ? error.message : 'Failed to create user' },
       { status: 500 }
     )
   }

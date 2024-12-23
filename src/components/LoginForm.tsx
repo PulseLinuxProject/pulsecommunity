@@ -3,16 +3,20 @@
 import React from 'react'
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 export function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     emailOrUsername: '',
     password: ''
   })
+
+  // Show success message if redirected from registration
+  const registered = searchParams.get('registered')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -27,9 +31,10 @@ export function LoginForm() {
       })
 
       if (result?.error) {
-        setError('Invalid username/email or password')
+        setError(result.error)
       } else {
         router.push('/')
+        router.refresh()
       }
     } catch (error) {
       console.error('Login error:', error)
@@ -42,6 +47,11 @@ export function LoginForm() {
   return (
     <div className="glass-card p-8">
       <form onSubmit={handleSubmit} className="space-y-6">
+        {registered && (
+          <div className="p-3 text-sm text-green-500 bg-green-500/10 rounded-lg">
+            Registration successful! Please sign in.
+          </div>
+        )}
         {error && (
           <div className="p-3 text-sm text-red-500 bg-red-500/10 rounded-lg">
             {error}
@@ -55,7 +65,7 @@ export function LoginForm() {
             id="emailOrUsername"
             type="text"
             value={formData.emailOrUsername}
-            onChange={(e) => setFormData(prev => ({ ...prev, emailOrUsername: e.target.value }))}
+            onChange={(e) => setFormData(prev => ({ ...prev, emailOrUsername: e.target.value.trim() }))}
             required
             className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
           />

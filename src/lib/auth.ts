@@ -16,35 +16,45 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.emailOrUsername || !credentials?.password) {
-          return null
-        }
-
-        // Try to find user by username or email
-        const user = await prisma.user.findFirst({
-          where: {
-            OR: [
-              { name: credentials.emailOrUsername },
-              { email: credentials.emailOrUsername }
-            ]
+        try {
+          if (!credentials?.emailOrUsername || !credentials?.password) {
+            console.error('Missing credentials')
+            throw new Error('Please provide both username/email and password')
           }
-        })
 
-        if (!user || !user.password) {
-          return null
-        }
+          // Try to find user by username or email
+          const user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { name: credentials.emailOrUsername },
+                { email: credentials.emailOrUsername }
+              ]
+            }
+          })
 
-        const isValid = await compare(credentials.password, user.password)
+          if (!user || !user.password) {
+            console.error('User not found:', credentials.emailOrUsername)
+            throw new Error('Invalid username/email or password')
+          }
 
-        if (!isValid) {
-          return null
-        }
+          const isValid = await compare(credentials.password, user.password)
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image
+          if (!isValid) {
+            console.error('Invalid password for user:', credentials.emailOrUsername)
+            throw new Error('Invalid username/email or password')
+          }
+
+          console.log('User logged in successfully:', user.name)
+
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image
+          }
+        } catch (error) {
+          console.error('Auth error:', error)
+          throw error
         }
       }
     })
@@ -75,5 +85,6 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
-  }
+  },
+  debug: process.env.NODE_ENV === 'development'
 } 
