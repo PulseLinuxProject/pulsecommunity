@@ -8,6 +8,7 @@ if (!process.env.NEXTAUTH_SECRET) {
 }
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -19,7 +20,7 @@ export const authOptions: NextAuthOptions = {
         try {
           if (!credentials?.emailOrUsername || !credentials?.password) {
             console.error('Missing credentials')
-            throw new Error('Please provide both username/email and password')
+            return null
           }
 
           // Try to find user by username or email
@@ -34,14 +35,14 @@ export const authOptions: NextAuthOptions = {
 
           if (!user || !user.password) {
             console.error('User not found:', credentials.emailOrUsername)
-            throw new Error('Invalid username/email or password')
+            return null
           }
 
           const isValid = await compare(credentials.password, user.password)
 
           if (!isValid) {
             console.error('Invalid password for user:', credentials.emailOrUsername)
-            throw new Error('Invalid username/email or password')
+            return null
           }
 
           console.log('User logged in successfully:', user.name)
@@ -54,7 +55,7 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error('Auth error:', error)
-          throw error
+          return null
         }
       }
     })
