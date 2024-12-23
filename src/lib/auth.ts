@@ -11,57 +11,49 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
+      id: 'credentials',
       name: 'Credentials',
       credentials: {
         emailOrUsername: { label: "Email or Username", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        try {
-          if (!credentials?.emailOrUsername || !credentials?.password) {
-            console.error('Missing credentials')
-            return null
+        if (!credentials?.emailOrUsername || !credentials?.password) {
+          throw new Error('Please provide both username/email and password')
+        }
+
+        // Try to find user by username or email
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { name: credentials.emailOrUsername },
+              { email: credentials.emailOrUsername }
+            ]
           }
+        })
 
-          // Try to find user by username or email
-          const user = await prisma.user.findFirst({
-            where: {
-              OR: [
-                { name: credentials.emailOrUsername },
-                { email: credentials.emailOrUsername }
-              ]
-            }
-          })
+        if (!user || !user.password) {
+          throw new Error('Invalid username/email or password')
+        }
 
-          if (!user || !user.password) {
-            console.error('User not found:', credentials.emailOrUsername)
-            return null
-          }
+        const isValid = await compare(credentials.password, user.password)
 
-          const isValid = await compare(credentials.password, user.password)
+        if (!isValid) {
+          throw new Error('Invalid username/email or password')
+        }
 
-          if (!isValid) {
-            console.error('Invalid password for user:', credentials.emailOrUsername)
-            return null
-          }
-
-          console.log('User logged in successfully:', user.name)
-
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            image: user.image
-          }
-        } catch (error) {
-          console.error('Auth error:', error)
-          return null
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image
         }
       }
     })
   ],
   pages: {
     signIn: '/login',
+    error: '/login',
   },
   callbacks: {
     async jwt({ token, user }) {

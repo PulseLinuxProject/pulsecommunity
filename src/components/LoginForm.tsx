@@ -17,6 +17,7 @@ export function LoginForm() {
 
   // Show success message if redirected from registration
   const registered = searchParams.get('registered')
+  const errorType = searchParams.get('error')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -25,13 +26,17 @@ export function LoginForm() {
 
     try {
       const result = await signIn('credentials', {
-        emailOrUsername: formData.emailOrUsername,
+        emailOrUsername: formData.emailOrUsername.trim(),
         password: formData.password,
         redirect: false,
       })
 
       if (result?.error) {
-        setError(result.error)
+        if (result.error === 'CredentialsSignin') {
+          setError('Invalid username/email or password')
+        } else {
+          setError(result.error)
+        }
       } else {
         router.push('/')
         router.refresh()
@@ -52,9 +57,9 @@ export function LoginForm() {
             Registration successful! Please sign in.
           </div>
         )}
-        {error && (
+        {(error || errorType) && (
           <div className="p-3 text-sm text-red-500 bg-red-500/10 rounded-lg">
-            {error}
+            {error || (errorType === 'CredentialsSignin' ? 'Invalid username/email or password' : errorType)}
           </div>
         )}
         <div>
@@ -65,7 +70,7 @@ export function LoginForm() {
             id="emailOrUsername"
             type="text"
             value={formData.emailOrUsername}
-            onChange={(e) => setFormData(prev => ({ ...prev, emailOrUsername: e.target.value.trim() }))}
+            onChange={(e) => setFormData(prev => ({ ...prev, emailOrUsername: e.target.value }))}
             required
             className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
           />
